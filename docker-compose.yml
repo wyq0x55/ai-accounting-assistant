@@ -1,0 +1,61 @@
+services:
+  # Canonical ledger, budgets, reports, family sharing.
+  actual_server:
+    image: actualbudget/actual-server:latest
+    container_name: actual_server
+    restart: unless-stopped
+    ports:
+      - "5006:5006"
+    volumes:
+      - actual_data:/data
+
+  # Node bridge: the only supported way to write transactions into Actual.
+  bridge:
+    build:
+      context: ./bridge
+    container_name: actual_bridge
+    restart: unless-stopped
+    depends_on:
+      - actual_server
+    environment:
+      ACTUAL_SERVER_URL: "http://actual_server:5006"
+      ACTUAL_PASSWORD: "${ACTUAL_PASSWORD}"
+      ACTUAL_SYNC_ID: "${ACTUAL_SYNC_ID}"
+      ACTUAL_ENCRYPTION_PASSWORD: "${ACTUAL_ENCRYPTION_PASSWORD:-}"
+      BRIDGE_PORT: "5008"
+    volumes:
+      - bridge_cache:/data
+    ports:
+      - "5008:5008"
+
+  # AI auto-accounting assistant: ingest, parse, classify, learn, review.
+  assistant:
+    build:
+      context: .
+      dockerfile: assistant/Dockerfile
+    container_name: ai_assistant
+    restart: unless-stopped
+    depends_on:
+      - bridge
+    environment:
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      AUTO_CONFIRM_THRESHOLD: "${AUTO_CONFIRM_THRESHOLD:-0.9}"
+      REVIEW_THRESHOLD: "${REVIEW_THRESHOLD:-0.6}"
+      # LLM (OpenAI-compatible). Leave OPENAI_MODEL empty to run rules-only.
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-}"
+      # Actual bridge wiring.
+      BRIDGE_BASE_URL: "http://bridge:5008"
+      ACTUAL_DEFAULT_ACCOUNT_ID: "${ACTUAL_DEFAULT_ACCOUNT_ID:-}"
+    volumes:
+      - assistant_data:/app/data
+      - assistant_logs:/app/logs
+    ports:
+      - "5007:5007"
+
+volumes:
+  actual_data:
+  bridge_cache:
+  assistant_data:
+  assistant_logs:

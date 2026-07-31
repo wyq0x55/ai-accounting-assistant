@@ -1,0 +1,19 @@
+{
+  "name": "actual-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Thin internal REST bridge to Actual Budget via @actual-app/api",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@actual-app/api": "^25.2.1",
+    "express": "^4.19.2",
+    "uuid": "^9.0.1"
+  }
+}
